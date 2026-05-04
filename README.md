@@ -1,37 +1,37 @@
 # Mike-InHouse
 
-> A fork of [willchen96/mike](https://github.com/willchen96/mike) repositioned for in-house counsel. Same engine. Different desk. Safer defaults.
+A fork of [willchen96/mike](https://github.com/willchen96/mike) rebuilt for in-house counsel.
 
-The original Mike was built for small-to-mid law firms running transactional finance — credit agreements, conditions precedent, shareholder agreements. This fork strips that out and ships five workflows in-house counsel actually run, plus three production defaults that need to be true before pointing an AI system at privileged documents.
+The original Mike was built for small and mid-sized law firms doing transactional finance work, with built-in workflows for credit agreements, conditions precedent, and shareholder agreements. This fork replaces those with five workflows an in-house lawyer actually runs, and changes three default behaviours that matter before pointing an AI system at privileged documents.
 
 ## What's different
 
-**Workflows for in-house, not law firms:**
+Five workflows in place of the original three:
 
-- **NDA Review Against Playbook** — flag every deviation from your standards as RED / AMBER / GREEN with proposed redlines.
-- **DPA Review (GDPR Art. 28)** — eight-row Article 28 compliance matrix, transfer-mechanism table, sub-processor list, ACCEPT / NEGOTIATE / REJECT recommendation.
-- **AI Vendor Addendum Review (EU AI Act)** — Article 50 transparency, GPAI / Art. 53–55 obligations, customer-facing risk allocation.
-- **MSA / Order Form Red-Flag Review** — plain-English traffic-light memo for the business owner who has to sign.
-- **Vendor Intake Triage** — risk tier, applicable regulations (GDPR / AI Act / DORA / NIS2), required approvers, documents needed, SLA.
+- NDA Review Against Playbook. Flag every deviation from your standards as RED, AMBER, or GREEN with proposed redlines.
+- DPA Review (GDPR Article 28). Eight-row Article 28 compliance matrix, transfer-mechanism table, sub-processor list, plus an ACCEPT/NEGOTIATE/REJECT recommendation.
+- AI Vendor Addendum Review under the EU AI Act. Article 50 transparency, GPAI obligations under Articles 53 to 55, customer-facing risk allocation.
+- MSA and SaaS order-form red-flag review. Plain-English traffic-light memo for the business owner who has to sign.
+- Vendor Intake Triage. Risk tier, applicable regulations (GDPR, AI Act, DORA, NIS2), required approvers, documents needed, and an SLA for legal turnaround.
 
-**Tabular review presets for EU work:** sub-processors, transfer mechanism, AI Act role.
+Tabular review presets for EU work cover sub-processors, transfer mechanism, and AI Act role allocation.
 
-**Production defaults that respect privilege:**
+Three default behaviours changed:
 
-- **Document text and prompts don't get written to disk.** By default, raw LLM stream events, document filenames, storage paths, extracted text snippets, and full system prompts are not logged. Nothing in your backups, nothing in your SIEM, nothing in your container logs to subpoena. Set `MIKE_DEBUG_STREAMS=1` only when actively debugging.
-- **Document download tokens are cryptographically scoped to your install.** No hidden fallback secret in the public source. The server refuses to sign URLs unless `DOWNLOAD_SIGNING_SECRET` is set to a value of at least 32 characters.
-- **The server refuses to boot with insecure defaults.** Forgetting to set `DOWNLOAD_SIGNING_SECRET` produces a clear startup error rather than a silent vulnerability.
+- Document text and prompts stay off disk by default. Raw LLM stream events, document filenames, storage paths, extracted text snippets, and full system prompts are gated behind `MIKE_DEBUG_STREAMS=1`. With the flag off, none of it lands in container logs, backups, or your SIEM. Set the flag only when actively debugging.
+- Document download tokens require a deployment-specific signing secret with no fallback. The server will not sign download URLs unless `DOWNLOAD_SIGNING_SECRET` is set to at least 32 characters.
+- The server refuses to boot if `DOWNLOAD_SIGNING_SECRET` is missing. Forgetting to set it produces a clear startup error instead of a silent vulnerability.
 
 ## Setup
 
-Same as upstream Mike, plus generating a signing secret. Install dependencies:
+Same as upstream Mike with one extra step for the signing secret. Install dependencies:
 
 ```bash
 npm install --prefix backend
 npm install --prefix frontend
 ```
 
-Create local env files (and set `DOWNLOAD_SIGNING_SECRET`):
+Create local env files and generate a signing secret:
 
 ```bash
 cp backend/.env.example backend/.env
@@ -53,15 +53,15 @@ Open `http://localhost:3000`.
 ## Required services
 
 - Supabase Auth and Postgres
-- S3-compatible object storage (e.g. Cloudflare R2)
-- An Anthropic or Google API key (configurable per user in account → models, or via env-level fallback in dev)
-- LibreOffice for DOC/DOCX to PDF conversion
+- S3-compatible object storage such as Cloudflare R2
+- An Anthropic or Google API key (per-user in account settings, or via env-level fallback in dev)
+- LibreOffice for DOC and DOCX to PDF conversion
 
 ## Environment flags
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DOWNLOAD_SIGNING_SECRET` | Yes | HMAC secret for download URLs. Min 32 chars. Server refuses to boot without it. |
+| `DOWNLOAD_SIGNING_SECRET` | Yes | HMAC secret for download URLs. Minimum 32 characters. Server refuses to boot without it. |
 | `MIKE_DEBUG_STREAMS` | No | Set to `1` to enable raw LLM stream logs and document-pipeline diagnostics. Off by default. |
 
 ## Checks
@@ -74,7 +74,7 @@ npm run lint --prefix frontend
 
 ## Credit
 
-This is a fork of [willchen96/mike](https://github.com/willchen96/mike) by Will Chen. The hard work — the document pipeline, tracked-changes engine, project model, tabular review feature — is his. Go star the original.
+This is a fork of [willchen96/mike](https://github.com/willchen96/mike) by Will Chen. The document pipeline, tracked-changes engine, project model, and tabular review feature are his work. Go star the original.
 
 ## License
 
