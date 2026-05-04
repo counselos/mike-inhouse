@@ -80,11 +80,14 @@ export async function streamClaude(
 
         let sawThinking = false;
 
-        stream.on("streamEvent", (event) => {
-            const line = JSON.stringify(event);
-            console.log("[claude raw stream]", line);
-            fs.appendFile(RAW_STREAM_LOG_PATH, line + "\n", () => {});
-        });
+        const debugStreams = process.env.MIKE_DEBUG_STREAMS === "1";
+        if (debugStreams) {
+            stream.on("streamEvent", (event) => {
+                const line = JSON.stringify(event);
+                console.log("[claude raw stream]", line);
+                fs.appendFile(RAW_STREAM_LOG_PATH, line + "\n", () => {});
+            });
+        }
 
         stream.on("text", (delta) => {
             callbacks.onContentDelta?.(delta);

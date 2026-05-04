@@ -22,6 +22,21 @@ import {
     type OpenAIToolSchema,
 } from "./llm";
 
+const DEBUG_STREAMS = process.env.MIKE_DEBUG_STREAMS === "1";
+
+/**
+ * Server-side debug logger gated on `MIKE_DEBUG_STREAMS=1`.
+ *
+ * Many log sites in this file include filenames, storage paths, or document
+ * text excerpts. Writing those to disk/stdout by default would leak privileged
+ * content to backups, SIEMs, and any environment where server log output is
+ * captured. Gate every such log behind this helper so production runs do not
+ * persist content-bearing diagnostics.
+ */
+function debugStreamLog(...args: unknown[]): void {
+    if (DEBUG_STREAMS) console["log"](...args);
+}
+
 const STANDARD_FONT_DATA_URL = (() => {
     try {
         const pkgPath = require.resolve("pdfjs-dist/package.json");
@@ -1140,16 +1155,16 @@ async function readDocumentContent(
     opts?: { emitEvents?: boolean },
 ): Promise<string> {
     const emitEvents = opts?.emitEvents ?? true;
-    console.log(`[read_document] called with docLabel="${docLabel}"`);
+    debugStreamLog(`[read_document] called with docLabel="${docLabel}"`);
     const docInfo = docStore.get(docLabel);
     if (!docInfo) {
-        console.log(
+        debugStreamLog(
             `[read_document] MISS — docLabel "${docLabel}" not in docStore. Known labels:`,
             Array.from(docStore.keys()),
         );
         return "Document not found.";
     }
-    console.log(
+    debugStreamLog(
         `[read_document] docInfo: filename="${docInfo.filename}", file_type="${docInfo.file_type}", storage_path="${docInfo.storage_path}"`,
     );
 
@@ -1185,11 +1200,11 @@ async function readDocumentContent(
                     current.bytes.byteOffset + current.bytes.byteLength,
                 ) as ArrayBuffer;
                 sourcePath = current.storage_path;
-                console.log(
+                debugStreamLog(
                     `[read_document] using current version path="${sourcePath}" (bytes=${raw.byteLength})`,
                 );
             } else {
-                console.log(
+                debugStreamLog(
                     `[read_document] loadCurrentVersionBytes returned null for documentId="${documentId}", falling back to original storage_path`,
                 );
             }
@@ -1197,13 +1212,13 @@ async function readDocumentContent(
         if (!raw) {
             raw = await downloadFile(docInfo.storage_path);
             if (raw) {
-                console.log(
+                debugStreamLog(
                     `[read_document] fallback download from storage_path="${docInfo.storage_path}" (bytes=${raw.byteLength})`,
                 );
             }
         }
         if (!raw) {
-            console.log(
+            debugStreamLog(
                 `[read_document] FAILED to download any bytes for docLabel="${docLabel}" (tried path="${sourcePath}")`,
             );
             emitDocRead();
@@ -1219,25 +1234,25 @@ async function readDocumentContent(
             const ascii = head
                 .toString("binary")
                 .replace(/[^\x20-\x7e]/g, ".");
-            console.log(
+            debugStreamLog(
                 `[read_document] magic bytes hex=${hex} ascii="${ascii}" for filename="${docInfo.filename}"`,
             );
         }
         let text: string;
         if (docInfo.file_type === "pdf") {
             text = await extractPdfText(raw);
-            console.log(
+            debugStreamLog(
                 `[read_document] pdf extracted length=${text.length} for filename="${docInfo.filename}"`,
             );
         } else if (docInfo.file_type === "docx") {
             // Use the same flattening as the edit_document matcher so the
             // LLM sees exactly the characters it can anchor against.
             text = await extractDocxBodyText(Buffer.from(raw));
-            console.log(
+            debugStreamLog(
                 `[read_document] docx extractDocxBodyText length=${text.length} for filename="${docInfo.filename}"`,
             );
             if (!text) {
-                console.log(
+                debugStreamLog(
                     `[read_document] docx accepted-view extractor returned empty, falling back to mammoth for filename="${docInfo.filename}"`,
                 );
                 const mammoth = await import("mammoth");
@@ -1245,12 +1260,12 @@ async function readDocumentContent(
                     buffer: Buffer.from(raw),
                 });
                 text = result.value;
-                console.log(
+                debugStreamLog(
                     `[read_document] docx mammoth fallback length=${text.length} for filename="${docInfo.filename}"`,
                 );
             }
         } else {
-            console.log(
+            debugStreamLog(
                 `[read_document] unknown file_type="${docInfo.file_type}" for filename="${docInfo.filename}", trying mammoth`,
             );
             const mammoth = await import("mammoth");
@@ -1258,20 +1273,22 @@ async function readDocumentContent(
                 buffer: Buffer.from(raw),
             });
             text = result.value;
-            console.log(
+            debugStreamLog(
                 `[read_document] mammoth length=${text.length} for filename="${docInfo.filename}"`,
             );
         }
-        console.log(
+        debugStreamLog(
             `[read_document] DONE filename="${docInfo.filename}" finalTextLength=${text.length} firstChars=${JSON.stringify(text.slice(0, 120))}`,
         );
         emitDocRead();
         return text;
     } catch (err) {
-        console.log(
+        debugStreamLog(
             `[read_document] THREW for docLabel="${docLabel}" filename="${docInfo.filename}":`,
             err,
         );
+        // Keep a minimal non-content error indicator so ops can still see read failures.
+        console.error("[read_document] read failed");
         if (emitEvents)
             write(`data: ${JSON.stringify({ type: "doc_read", filename: docInfo.filename })}\n\n`);
         return "Document could not be read.";
@@ -2123,7 +2140,7 @@ export async function runToolCalls(
         } else if (tc.function.name === "generate_docx") {
             const title = args.title as string;
             const landscape = !!(args.landscape);
-            console.log(`[generate_docx] title="${title}" landscape=${landscape} args.landscape=${args.landscape}`);
+            debugStreamLog(`[generate_docx] title="${title}" landscape=${landscape} args.landscape=${args.landscape}`);
             const previewFilename = `${(title.replace(/[^a-zA-Z0-9 _-]/g, "").trim().slice(0, 64) || "document")}.docx`;
             write(`data: ${JSON.stringify({ type: "doc_created_start", filename: previewFilename })}\n\n`);
             const result = await generateDocx(
@@ -2323,7 +2340,7 @@ export async function runLLMStream(params: {
     const rawMsgs = apiMessages as { role: string; content: string | null }[];
     const systemPrompt =
         rawMsgs[0]?.role === "system" ? (rawMsgs[0].content ?? "") : "";
-    console.log(
+    debugStreamLog(
         "[runLLMStream] system prompt:\n" +
             "─".repeat(80) +
             "\n" +
@@ -2698,7 +2715,7 @@ export async function buildDocContext(
         }
     }
 
-    console.log(
+    debugStreamLog(
         "[buildDocContext] available docs:",
         Object.entries(docIndex).map(([label, info]) => ({
             label,
@@ -2776,7 +2793,7 @@ export async function buildProjectDocContext(
         if (path) folderPaths.set(docLabel, path);
     }
 
-    console.log(
+    debugStreamLog(
         "[buildProjectDocContext] available docs:",
         Object.entries(docIndex).map(([label, info]) => ({
             label,
