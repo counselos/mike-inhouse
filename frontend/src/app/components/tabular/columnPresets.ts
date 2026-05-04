@@ -10,6 +10,24 @@ export interface ColumnPreset {
 
 export const PROMPT_PRESETS: ColumnPreset[] = [
     {
+        name: "Sub-processors",
+        matches: /\bsub[- ]?processors?\b/i,
+        format: "bulleted_list",
+        prompt: 'List every sub-processor named or referenced in this DPA or its annex. For each, give: name, service provided, location of processing (country or region). One sub-processor per bullet, e.g.:\n• Amazon Web Services EMEA SARL — cloud hosting — Ireland\nIf the DPA permits sub-processors but does not list them, write a single bullet: "Sub-processors permitted but not enumerated". No additional commentary.',
+    },
+    {
+        name: "Transfer Mechanism",
+        matches: /\btransfer mechanism\b|\bsccs?\b|\bidta\b|\binternational transfers?\b/i,
+        format: "text",
+        prompt: 'State the international data transfer mechanism that applies. Use one of: "EU SCCs (module [N])", "UK IDTA", "UK Addendum to EU SCCs", "Adequacy decision ([country])", "BCRs", "Article 49 derogation ([type])", "No transfer outside EEA/UK". If the DPA references an annex without specifying a module, state the closest match and append " (module unspecified)".',
+    },
+    {
+        name: "AI Act Role",
+        matches: /\bai act role\b|\bai role\b|\bprovider\/deployer\b|\bgpai\b/i,
+        format: "text",
+        prompt: 'Identify the role allocation under the EU AI Act (Regulation 2024/1689). Use one of: "Provider", "Deployer", "Distributor", "Importer", "Downstream provider", "Mixed (specify)", "Not addressed". If the agreement covers a general-purpose AI (GPAI) model, append " — GPAI". If the model is identified as having systemic risk under Art. 51, append " — systemic risk".',
+    },
+    {
         name: "Parties",
         matches: /\bpart(y|ies)\b/i,
         format: "bulleted_list",
