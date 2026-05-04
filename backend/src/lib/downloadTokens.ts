@@ -10,11 +10,14 @@ import crypto from "crypto";
  */
 
 function getSecret(): string {
-    return (
-        process.env.DOWNLOAD_SIGNING_SECRET ??
-        process.env.SUPABASE_SECRET_KEY ??
-        "dev-secret"
-    );
+    const secret = process.env.DOWNLOAD_SIGNING_SECRET;
+    if (!secret || secret.length < 32) {
+        throw new Error(
+            "DOWNLOAD_SIGNING_SECRET is required and must be at least 32 characters. " +
+                "Generate one with: openssl rand -hex 32",
+        );
+    }
+    return secret;
 }
 
 function b64urlEncode(buf: Buffer): string {

@@ -10,6 +10,33 @@ import { workflowsRouter } from "./routes/workflows";
 import { userRouter } from "./routes/user";
 import { downloadsRouter } from "./routes/downloads";
 
+function assertRequiredEnv(): void {
+  const missing: string[] = [];
+  const secret = process.env.DOWNLOAD_SIGNING_SECRET;
+  if (!secret || secret.length < 32) {
+    missing.push("DOWNLOAD_SIGNING_SECRET (minimum 32 characters)");
+  }
+
+  if (missing.length) {
+    const lines = [
+      "Mike-InHouse cannot start: required env vars are not set.",
+      "",
+      ...missing.map((name) => `- ${name}`),
+      "",
+      "Generate a download signing secret with:",
+      "  openssl rand -hex 32",
+      "",
+      "Then add it to backend/.env:",
+      "  DOWNLOAD_SIGNING_SECRET=<generated-value>",
+    ];
+    // eslint-disable-next-line no-console
+    console.error(lines.join("\n"));
+    process.exit(1);
+  }
+}
+
+assertRequiredEnv();
+
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
