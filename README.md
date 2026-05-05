@@ -1,12 +1,12 @@
 # Mike-InHouse
 
-A fork of [willchen96/mike](https://github.com/willchen96/mike) rebuilt for in-house counsel.
+A fork of [willchen96/mike](https://github.com/willchen96/mike) extended for in-house counsel.
 
-The original Mike was built for small and mid-sized law firms doing transactional finance work, with built-in workflows for credit agreements, conditions precedent, and shareholder agreements. This fork replaces those with five workflows an in-house lawyer actually runs, and changes three default behaviours that matter before pointing an AI system at privileged documents.
+The original Mike was built for small and mid-sized law firms doing transactional finance work, with built-in workflows for credit agreements, conditions precedent, and shareholder agreements. This fork adds five workflows an in-house lawyer actually runs alongside those, and changes three default behaviours that matter before pointing an AI system at privileged documents.
 
 ## What's different
 
-Five workflows in place of the original three:
+Five new workflows added alongside Mike's original three:
 
 - NDA Review Against Playbook. Flag every deviation from your standards as RED, AMBER, or GREEN with proposed redlines.
 - DPA Review (GDPR Article 28). Eight-row Article 28 compliance matrix, transfer-mechanism table, sub-processor list, plus an ACCEPT/NEGOTIATE/REJECT recommendation.
